@@ -20,7 +20,9 @@ function formatNumber(num, fullLength) {
         return formatNumberLong(num);
     }
 
-    if (num >= 1e9) {
+    if (num >= 1e12) {
+        return parseFloat((num / 1e12).toPrecision(3)) + 'T+'; // Trillions
+    } else if (num >= 1e9) {
         return parseFloat((num / 1e9).toPrecision(3)) + 'B+'; // Billions
     } else if (num >= 1e6) {
         return parseFloat((num / 1e6).toPrecision(3)) + 'M+'; // Millions
