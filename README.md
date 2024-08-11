@@ -9,10 +9,17 @@ A Chromium extension that converts Robux amounts to USD on Roblox.com and displa
 - **Easy to Use**: Simple toggle options are available in a popup accessible from the extension icon.
 - **Private:** No data is sent or received by the plugin, so it is entirely private.
 
-## Installation
+## Installation via Git
 
 1. Clone this repository to your local machine:
 
    ```bash
    git clone https://github.com/daireb/better-robux-display.git
    ```
+2. Open your extensions page and enable "Developer Mode"
+3. Click "Load Unpacked" and selected the downloaded file.
+4. Enjoy!
+
+## Installation on the Web Store
+
+Once they accept my store listing I'll post the link here!
