@@ -86,7 +86,7 @@ function updateRobuxDisplay(robuxElement, options) {
 
 // Function to handle updates for the observer
 function handleRobuxMutation(robuxElement, options, observer) {
-    if (robuxElement.textContent.includes('$')) return; // Early exit if this is already formatted text
+    if (robuxElement.textContent.includes('$') || robuxElement.textContent.includes('[')) return; // Early exit if this is already formatted text
 
     if (observer) observer.disconnect();
 
@@ -117,7 +117,7 @@ function observeRobuxElement(selector, options = {}) {
         robuxElements.forEach(robuxElement => {
             // Ensure that each element is observed separately
             const robuxObserver = new MutationObserver(() => {
-                handleRobuxMutation(robuxElement, options, obs);
+                handleRobuxMutation(robuxElement, options, robuxObserver);
             });
 
             // Observe each element for content changes
@@ -128,11 +128,11 @@ function observeRobuxElement(selector, options = {}) {
             });
 
             // Update the display immediately for each element found
-            handleRobuxMutation(robuxElement, options, obs);
+            handleRobuxMutation(robuxElement, options, robuxObserver);
         });
 
         if (robuxElements.length > 0 && !options.noDisconnect) {
-            obs.disconnect(); // Disconnect after the element is found and updated
+            obs.disconnect(); // Disconnect after an element is found and updated
         }
     });
 
@@ -171,4 +171,7 @@ observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRob
 // Personal transactions
 observeRobuxElement('td.amount.icon-robux-container > span.icon-robux-16x16 + span', { noDisconnect: true, fullLength: true });
 
-// It is a known issue that the balance on the "My Transactions" tab doesn't update. It's sort of annoying to do so I didn't do it.
+// Marketplace Popups
+observeRobuxElement('.text-robux', { useOverride: true, noDisconnect: true, fullLength: true });
+
+// It is a known issue that the balance on the "My Transactions" tab doesn't update. It's sort of annoying to do so I didn't do it. 
