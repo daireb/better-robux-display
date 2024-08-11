@@ -24,4 +24,3 @@ Once they accept my store listing I'll post the link here!
 2. Open your extensions page and enable "Developer Mode"
 3. Click "Load Unpacked" and selected the downloaded file.
 4. Enjoy!
-5. 
