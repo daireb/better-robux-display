@@ -10,6 +10,10 @@ A Chromium extension that converts Robux amounts to USD on Roblox.com and displa
 - **Private:** No data is sent or received by the plugin, so it is entirely private.
 - **Robux Override:** Override how much robux it shows on your profile! Just a silly fun feature I thought I'd add while I was at it :)
 
+## Installation on the Chrome Web Store
+
+Once they accept my store listing I'll post the link here!
+
 ## Installation via Git
 
 1. Clone this repository to your local machine:
@@ -20,7 +24,4 @@ A Chromium extension that converts Robux amounts to USD on Roblox.com and displa
 2. Open your extensions page and enable "Developer Mode"
 3. Click "Load Unpacked" and selected the downloaded file.
 4. Enjoy!
-
-## Installation on the Web Store
-
-Once they accept my store listing I'll post the link here!
+5. 
