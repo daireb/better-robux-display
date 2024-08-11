@@ -4,6 +4,8 @@ let showRobux = false;
 let robuxOverride = 0;
 let enableOverride = false;
 
+const devex_rate = 0.0035;
+
 function formatNumberLong(num) {
     const userLocale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
 
@@ -20,16 +22,19 @@ function formatNumber(num, fullLength) {
         return formatNumberLong(num);
     }
 
-    if (num >= 1e12) {
-        return parseFloat((num / 1e12).toPrecision(3)) + 'T+'; // Trillions
-    } else if (num >= 1e9) {
-        return parseFloat((num / 1e9).toPrecision(3)) + 'B+'; // Billions
-    } else if (num >= 1e6) {
-        return parseFloat((num / 1e6).toPrecision(3)) + 'M+'; // Millions
-    } else if (num >= 1e3) {
-        return parseFloat((num / 1e3).toPrecision(3)) + 'K+'; // Thousands
+    let sign = Math.sign(num) >= 0 ? '' : '-'; // Determine the sign for positive or negative numbers
+    let absNum = Math.abs(num);
+
+    if (absNum >= 1e12) {
+        return sign + parseFloat((absNum / 1e12).toPrecision(3)) + 'T+'; // Trillions
+    } else if (absNum >= 1e9) {
+        return sign + parseFloat((absNum / 1e9).toPrecision(3)) + 'B+'; // Billions
+    } else if (absNum >= 1e6) {
+        return sign + parseFloat((absNum / 1e6).toPrecision(3)) + 'M+'; // Millions
+    } else if (absNum >= 1e3) {
+        return sign + parseFloat((absNum / 1e3).toPrecision(3)) + 'K+'; // Thousands
     } else {
-        return parseFloat(num.toFixed(2)); // Return the original number if it's below 1000
+        return sign + parseFloat(absNum.toFixed(2)); // Return the original number if it's below 1000
     }
 }
 
@@ -46,13 +51,16 @@ function formatRobuxData(robuxAmount, usdAmount, fullLength) {
 }
 
 // Function to convert and display USD next to Robux
-function updateRobuxDisplay(robuxElement, fullLength, followOverride) {
+function updateRobuxDisplay(robuxElement, options) {
     let rawText = robuxElement.textContent.trim(); // Trim to remove any leading/trailing whitespace
     let robuxText = rawText;
     let multiplier = 1;
 
     // Handling different formats of Robux amounts
-    if (robuxText.includes('M')) {
+    if (robuxText.includes('B')) {
+        multiplier = 1e9;
+        robuxText = robuxText.replace('B', ''); // Remove 'B'
+    } else if (robuxText.includes('M')) {
         multiplier = 1e6;
         robuxText = robuxText.replace('M', ''); // Remove 'M'
     } else if (robuxText.includes('K')) {
@@ -63,7 +71,7 @@ function updateRobuxDisplay(robuxElement, fullLength, followOverride) {
     // Remove any other non-numeric characters (like commas)
     robuxText = robuxText.replace(/[^0-9.]/g, '');
 
-    const robuxAmount = followOverride && enableOverride
+    const robuxAmount = options.followOverride && enableOverride
         ? robuxOverride
         : parseFloat(robuxText) * multiplier;
 
@@ -72,18 +80,18 @@ function updateRobuxDisplay(robuxElement, fullLength, followOverride) {
         throw new Error("Invalid Robux amount: " + rawText);
     }
 
-    const usdAmount = robuxAmount * 0.0035;
-    robuxElement.textContent = formatRobuxData(robuxAmount, usdAmount, fullLength);
+    const usdAmount = robuxAmount * devex_rate;
+    robuxElement.textContent = formatRobuxData(robuxAmount, usdAmount, options.fullLength);
 }
 
 // Function to handle updates for the observer
-function handleRobuxMutation(robuxElement, fullLength, followOverride, observer) {
+function handleRobuxMutation(robuxElement, options, observer) {
     if (robuxElement.textContent.includes('$')) return; // Early exit if this is already formatted text
 
     if (observer) observer.disconnect();
 
     try {
-        updateRobuxDisplay(robuxElement, fullLength, followOverride);
+        updateRobuxDisplay(robuxElement, options);
     } catch (error) {
         console.error('Error updating Robux display:', error);
     } finally {
@@ -96,15 +104,20 @@ function handleRobuxMutation(robuxElement, fullLength, followOverride, observer)
 }
 
 // Function to set up an observer on an element
-function observeRobuxElement(selector, followOverride, fullLength, no_disconnect) {
+function observeRobuxElement(selector, options = {}) {
+    // Default options
+    options.followOverride = options.followOverride !== undefined ? options.followOverride : false;
+    options.fullLength = options.fullLength !== undefined ? options.fullLength : false;
+    options.noDisconnect = options.noDisconnect !== undefined ? options.noDisconnect : false;
+
+    // Creating Observer
     const initialObserver = new MutationObserver((mutations, obs) => {
         const robuxElements = document.querySelectorAll(selector);
-        //const robuxElement = document.querySelector(selector);
 
         robuxElements.forEach(robuxElement => {
             // Ensure that each element is observed separately
             const robuxObserver = new MutationObserver(() => {
-                handleRobuxMutation(robuxElement, fullLength, followOverride, robuxObserver);
+                handleRobuxMutation(robuxElement, options, obs);
             });
 
             // Observe each element for content changes
@@ -115,10 +128,10 @@ function observeRobuxElement(selector, followOverride, fullLength, no_disconnect
             });
 
             // Update the display immediately for each element found
-            handleRobuxMutation(robuxElement, fullLength, followOverride, robuxObserver);
+            handleRobuxMutation(robuxElement, options, obs);
         });
 
-        if (robuxElements.length > 0 && !no_disconnect) {
+        if (robuxElements.length > 0 && !options.noDisconnect) {
             obs.disconnect(); // Disconnect after the element is found and updated
         }
     });
@@ -139,18 +152,20 @@ chrome.storage.sync.get(['showUSD', 'showRobux', 'robuxOverride', 'enableOverrid
     enableOverride = data.enableOverride || false;
 
     // Now you can use these variables in your script
-    console.log('Settings loaded:', { hidden, showUSD, showRobux });
+    console.log('Settings loaded:', { showUSD, showRobux, robuxOverride, enableOverride });
 });
 
 // Setting up observers
 
 // Robux Counter on the top right
-observeRobuxElement('.rbx-text-navbar-right.text-header', true);
-observeRobuxElement('#nav-robux-balance', true, true, true);
+observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true });
+observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true });
 
 // Group balance
 observeRobuxElement('.text-robux.ng-binding');
 
 // Group revenue summary
-observeRobuxElement('span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', false, true, true);
-observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', false, true)
+observeRobuxElement('span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', { fullLength: true, noDisconnect: true });
+observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', { fullLength: true });
+
+observeRobuxElement('td.amount.icon-robux-container > span:nth-child(3)', { noDisconnect: true });
