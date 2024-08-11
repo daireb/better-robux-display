@@ -71,7 +71,7 @@ function updateRobuxDisplay(robuxElement, options) {
     // Remove any other non-numeric characters (like commas)
     robuxText = robuxText.replace(/[^0-9.]/g, '');
 
-    const robuxAmount = options.followOverride && enableOverride
+    const robuxAmount = options.useOverride && enableOverride
         ? robuxOverride
         : parseFloat(robuxText) * multiplier;
 
@@ -168,4 +168,7 @@ observeRobuxElement('.text-robux.ng-binding');
 observeRobuxElement('span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', { fullLength: true, noDisconnect: true });
 observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', { fullLength: true });
 
-observeRobuxElement('td.amount.icon-robux-container > span:nth-child(3)', { noDisconnect: true });
+// Personal transactions
+observeRobuxElement('td.amount.icon-robux-container > span.icon-robux-16x16 + span', { noDisconnect: true, fullLength: true });
+
+// It is a known issue that the balance on the "My Transactions" tab doesn't update. It's sort of annoying to do so I didn't do it.
