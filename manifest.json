@@ -4,7 +4,6 @@
   "version": "1.1",
   "description": "Allows configuration of robux display on Roblox.com, including hiding values and showing devex amounts.",
   "permissions": [
-    "activeTab",
     "storage"
   ],
   "content_scripts": [
