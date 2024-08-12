@@ -4,7 +4,8 @@ let showRobux = false;
 let robuxOverride = 0;
 let enableOverride = false;
 
-const devex_rate = 0.0035;
+const HIDDEN_TEXT = "???";
+const DEVEX_RATE = 0.0035;
 
 function formatNumberLong(num) {
     const userLocale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
@@ -46,7 +47,7 @@ function formatRobuxData(robuxAmount, usdAmount, fullLength) {
     } else if (showRobux && showUSD) {
         return `${formatNumber(robuxAmount, fullLength)} ($${formatNumber(usdAmount)})`;
     } else {
-        return "[Hidden]"
+        return HIDDEN_TEXT;
     }
 }
 
@@ -80,13 +81,13 @@ function updateRobuxDisplay(robuxElement, options) {
         throw new Error("Invalid Robux amount: " + rawText);
     }
 
-    const usdAmount = robuxAmount * devex_rate;
+    const usdAmount = robuxAmount * DEVEX_RATE;
     robuxElement.textContent = formatRobuxData(robuxAmount, usdAmount, options.fullLength);
 }
 
 // Function to handle updates for the observer
 function handleRobuxMutation(robuxElement, options, observer) {
-    if (robuxElement.textContent.includes('$') || robuxElement.textContent.includes('[')) return; // Early exit if this is already formatted text
+    if (robuxElement.textContent.includes('$') || robuxElement.textContent.includes('?')) return; // Early exit if this is already formatted text
 
     if (observer) observer.disconnect();
 
