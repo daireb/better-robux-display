@@ -26,3 +26,11 @@ Just go to [the Chrome Web Store page](https://chromewebstore.google.com/detail/
 2. Open your browser's extensions page and enable "Developer Mode"
 3. Click "Load Unpacked" and select the downloaded file.
 4. Enjoy!
+
+## License
+
+This project is open source and available under the [MIT License](https://opensource.org/licenses/MIT). This means you can modify, distribute, or use the software even for commercial purposes, as long as you include the original license and copyright notice in any copies of the software or substantial portions of it.
+
+## Disclaimer
+
+"Better Robux Display" is an independent project and is not affiliated with, authorized, endorsed by, or in any way officially connected with Roblox Corporation, or any of its subsidiaries or its affiliates. The official Roblox website can be found at https://www.roblox.com. The name "Roblox" as well as related names, marks, emblems, and images are registered trademarks of their respective owners.
