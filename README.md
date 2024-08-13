@@ -12,7 +12,7 @@ A Chromium extension that converts Robux amounts to USD on Roblox.com and displa
 
 ## Installation on the Chrome Web Store
 
-Once they accept my store listing I'll post the link here!
+Just go to https://chromewebstore.google.com/detail/better-robux-display/fkpmkgjdhbojilghokdiheilcapgkbgn?authuser=0&hl=en and add it to your browser!
 
 ## Installation via Git
 
