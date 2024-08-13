@@ -27,9 +27,9 @@ Just go to [the Chrome Web Store page](https://chromewebstore.google.com/detail/
 3. Click "Load Unpacked" and select the downloaded file.
 4. Enjoy!
 
-## License
+## Licence
 
-This project is open source and available under the [MIT License](https://opensource.org/licenses/MIT). This means you can modify, distribute, or use the software even for commercial purposes, as long as you include the original license and copyright notice in any copies of the software or substantial portions of it.
+This project is open source and available under the [MIT Licence](https://opensource.org/licenses/MIT). This means you can modify, distribute, or use the software even for commercial purposes, as long as you include the original licence and copyright notice in any copies of the software or substantial portions of it.
 
 ## Disclaimer
 
