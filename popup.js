@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	// Load the stored settings
 	chrome.storage.sync.get(['showUSD', 'showRobux', 'robuxOverride', 'enableOverride'], (data) => {
 		document.getElementById('showUSD').checked = data.showUSD !== false;
-		document.getElementById('showRobux').checked = data.showRobux || false;
+		document.getElementById('showRobux').checked = data.showRobux != false;
 		document.getElementById('robuxOverride').value = data.robuxOverride || '';
 		document.getElementById('enableOverride').checked = data.enableOverride || false;
 	});

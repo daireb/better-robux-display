@@ -1,5 +1,5 @@
 let showUSD = true;
-let showRobux = false;
+let showRobux = true;
 
 let robuxOverride = 0;
 let enableOverride = false;
@@ -147,8 +147,8 @@ function observeRobuxElement(selector, options = {}) {
 // Getting settings
 
 chrome.storage.sync.get(['showUSD', 'showRobux', 'robuxOverride', 'enableOverride'], (data) => {
-    showUSD = data.showUSD !== false; // default to true
-    showRobux = data.showRobux || false;
+    showUSD = data.showUSD !== false;
+    showRobux = data.showRobux !== false;
     robuxOverride = parseInt(data.robuxOverride) || 0;
     enableOverride = data.enableOverride || false;
 
