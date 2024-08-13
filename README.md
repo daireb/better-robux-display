@@ -21,6 +21,8 @@ Just go to [the Chrome Web Store page](https://chromewebstore.google.com/detail/
    ```bash
    git clone https://github.com/daireb/better-robux-display.git
    ```
-2. Open your extensions page and enable "Developer Mode"
-3. Click "Load Unpacked" and selected the downloaded file.
+
+   Or just manually download it.
+2. Open your browser's extensions page and enable "Developer Mode"
+3. Click "Load Unpacked" and select the downloaded file.
 4. Enjoy!
