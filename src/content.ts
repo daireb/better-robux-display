@@ -5,7 +5,7 @@ let robuxOverride = 0;
 let enableOverride = false;
 
 const HIDDEN_TEXT = "???";
-const DEVEX_RATE = 0.0035;
+const DEVEX_RATE = 0.0038;
 
 function formatNumberLong(num: number): string {
 	const userLocale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
