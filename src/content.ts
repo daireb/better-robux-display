@@ -1,6 +1,7 @@
 let showUSD = true;
 let showRobux = true;
 
+// TODO for some reason this doesn't load until you change it once in the config
 let robuxOverride = 0;
 let enableOverride = false;
 
@@ -142,3 +143,57 @@ async function init(): Promise<void> {
 
 // Initialize
 init();
+
+// Refresh all known Robux display elements using current settings.
+function refreshAll(): void {
+	const selectorMap: Array<{ sel: string; opts?: { useOverride?: boolean; fullLength?: boolean } }> = [
+		{ sel: '.rbx-text-navbar-right.text-header', opts: { useOverride: true } },
+		{ sel: '#nav-robux-balance', opts: { useOverride: true, fullLength: true } },
+		{ sel: '.text-robux.ng-binding' },
+		{ sel: 'span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', opts: { fullLength: true } },
+		{ sel: 'span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', opts: { fullLength: true } },
+		{ sel: 'td.amount.icon-robux-container > span.icon-robux-16x16 + span', opts: { fullLength: true } },
+		{ sel: '.text-robux', opts: { useOverride: true, fullLength: true } }
+	];
+
+	selectorMap.forEach(entry => {
+		const nodes = document.querySelectorAll(entry.sel);
+		nodes.forEach(node => {
+			try {
+				updateRobuxDisplay(node, entry.opts || {});
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to refresh element', entry.sel, err);
+			}
+		});
+	});
+}
+
+// Listen for storage changes and apply them live
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+	chrome.storage.onChanged.addListener((changes, areaName) => {
+		if (areaName !== 'sync') return;
+
+		if (changes.showUSD) showUSD = changes.showUSD.newValue !== false;
+		if (changes.showRobux) showRobux = changes.showRobux.newValue !== false;
+		if (changes.robuxOverride) {
+			// robuxOverride may be saved as string from the popup
+			const raw = changes.robuxOverride.newValue as any;
+			robuxOverride = parseInt(raw as string) || 0;
+		}
+		if (changes.enableOverride) enableOverride = !!changes.enableOverride.newValue;
+
+		// eslint-disable-next-line no-console
+		console.log('Storage changed, refreshing displays', { showUSD, showRobux, robuxOverride, enableOverride });
+
+		// Immediately refresh all observed elements
+		try {
+			refreshAll();
+		} catch (err) {
+			// eslint-disable-next-line no-console
+			console.error('Error during refreshAll', err);
+		}
+	});
+}
+
+refreshAll();
