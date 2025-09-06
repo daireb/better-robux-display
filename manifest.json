@@ -3,13 +3,11 @@
   "name": "Better Robux Display",
   "version": "1.2",
   "description": "Allows configuration of robux display on Roblox.com, including hiding values and showing devex amounts.",
-  "permissions": [
-    "storage"
-  ],
+  "permissions": ["storage"],
   "content_scripts": [
     {
       "matches": ["https://www.roblox.com/*"],
-      "js": ["content.js"]
+      "js": ["dist/content.js"]
     }
   ],
   "icons": {

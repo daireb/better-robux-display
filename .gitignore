@@ -1,1 +1,8 @@
+# macOS system files
 .DS_Store
+
+# Build
+/dist
+
+# Packages
+/node_modules

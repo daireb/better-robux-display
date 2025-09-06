@@ -1,0 +1,15 @@
+{
+  "name": "better-robux-display",
+  "version": "1.2.0",
+  "description": "Better Robux Display - TypeScript conversion",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --sourcemap && esbuild src/popup.ts --bundle --outfile=dist/popup.js --platform=browser --sourcemap",
+    "build:watch": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --sourcemap --watch & esbuild src/popup.ts --bundle --outfile=dist/popup.js --platform=browser --sourcemap --watch"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.188",
+    "esbuild": "^0.18.0",
+    "typescript": "^5.0.0"
+  }
+}
