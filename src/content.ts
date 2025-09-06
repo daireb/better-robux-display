@@ -118,23 +118,27 @@ function observeRobuxElement(selector: string, options: { useOverride?: boolean;
 	});
 }
 
-// Load settings
-chrome.storage.sync.get(['showUSD', 'showRobux', 'robuxOverride', 'enableOverride'], (data: any) => {
+async function init(): Promise<void> {
+	const data = await getSettings();
+
 	showUSD = data.showUSD !== false;
 	showRobux = data.showRobux !== false;
-	robuxOverride = parseInt(data.robuxOverride) || 0;
+	robuxOverride = parseInt((data.robuxOverride as any) as string) || 0;
 	enableOverride = data.enableOverride || false;
 
 	// Logging for debugging
 	// eslint-disable-next-line no-console
 	console.log('Settings loaded:', { showUSD, showRobux, robuxOverride, enableOverride });
-});
 
-// Observers
-observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true });
-observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true });
-observeRobuxElement('.text-robux.ng-binding');
-observeRobuxElement('span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', { fullLength: true, noDisconnect: true });
-observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', { fullLength: true });
-observeRobuxElement('td.amount.icon-robux-container > span.icon-robux-16x16 + span', { noDisconnect: true, fullLength: true });
-observeRobuxElement('.text-robux', { useOverride: true, noDisconnect: true, fullLength: true });
+	// Register observers after settings are loaded so they use the correct initial state
+	observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true });
+	observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true });
+	observeRobuxElement('.text-robux.ng-binding');
+	observeRobuxElement('span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', { fullLength: true, noDisconnect: true });
+	observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', { fullLength: true });
+	observeRobuxElement('td.amount.icon-robux-container > span.icon-robux-16x16 + span', { noDisconnect: true, fullLength: true });
+	observeRobuxElement('.text-robux', { useOverride: true, noDisconnect: true, fullLength: true });
+}
+
+// Initialize
+init();
