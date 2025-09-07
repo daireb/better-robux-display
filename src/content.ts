@@ -4,7 +4,6 @@ import * as Config from './config'
 let showUSD = true;
 let showRobux = true;
 
-// TODO for some reason this doesn't load until you change it once in the config
 let robuxOverride = 0;
 let enableOverride = false;
 
