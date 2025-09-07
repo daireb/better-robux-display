@@ -48,3 +48,5 @@ export function initPopup(): void {
 }
 
 initPopup();
+
+console.log("Better Robux Display popup script loaded");
