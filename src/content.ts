@@ -1,7 +1,7 @@
 import { getSettings } from './common';
 import * as Config from './config'
 
-let showUSD = true;
+let showUSD = false;
 let showRobux = true;
 
 let robuxOverride = 0;
