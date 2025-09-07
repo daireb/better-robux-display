@@ -161,13 +161,14 @@ export async function initContent(): Promise<void> {
 	console.log('Settings loaded:', { showUSD, showRobux, robuxOverride, enableOverride });
 
 	// Register observers after settings are loaded so they use the correct initial state
-	observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true });
-	observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true });
+	observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true }); // Top-right robux display in navbar
+	observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true }); // Detailed robux in navbar dropdown
+
 	observeRobuxElement('.text-robux.ng-binding');
 	observeRobuxElement('span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', { fullLength: true, noDisconnect: true });
 	observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', { fullLength: true });
 	observeRobuxElement('td.amount.icon-robux-container > span.icon-robux-16x16 + span', { noDisconnect: true, fullLength: true });
-	observeRobuxElement('.text-robux', { useOverride: true, noDisconnect: true, fullLength: true });
+	observeRobuxElement('.text-robux', { noDisconnect: true, fullLength: true });
 
 	// Listen for storage changes and apply them live
 	if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
