@@ -1,3 +1,6 @@
+import { getSettings } from './common';
+import * as Config from './config'
+
 let showUSD = true;
 let showRobux = true;
 
@@ -33,7 +36,7 @@ function formatRobuxData(robuxAmount: number, usdAmount: number, fullLength = fa
 	if (showUSD && !showRobux) return `$${formatNumber(usdAmount, fullLength)}`;
 	if (showRobux && !showUSD) return `${formatNumber(robuxAmount, fullLength)}`;
 	if (showRobux && showUSD) return `${formatNumber(robuxAmount, fullLength)} ($${formatNumber(usdAmount)})`;
-	return HIDDEN_TEXT;
+	return Config.HIDDEN_TEXT;
 }
 
 function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }): void {
@@ -62,7 +65,7 @@ function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: bool
 		throw new Error('Invalid Robux amount: ' + rawText);
 	}
 
-	const usdAmount = robuxAmount * DEVEX_RATE;
+	const usdAmount = robuxAmount * Config.DEVEX_RATE;
 	robuxElement.textContent = formatRobuxData(robuxAmount, usdAmount, !!options.fullLength);
 }
 
@@ -116,7 +119,22 @@ function observeRobuxElement(selector: string, options: { useOverride?: boolean;
 	});
 }
 
-async function init(): Promise<void> {
+// Refresh all known Robux display elements using current settings.
+export function refreshPageContent(): void {
+	Config.SELECTOR_MAP.forEach(entry => {
+		const nodes = document.querySelectorAll(entry.sel);
+		nodes.forEach(node => {
+			try {
+				updateRobuxDisplay(node, entry.opts || {});
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to refresh element', entry.sel, err);
+			}
+		});
+	});
+}
+
+export async function initContent(): Promise<void> {
 	const data = await getSettings();
 
 	showUSD = data.showUSD !== false;
@@ -136,51 +154,31 @@ async function init(): Promise<void> {
 	observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', { fullLength: true });
 	observeRobuxElement('td.amount.icon-robux-container > span.icon-robux-16x16 + span', { noDisconnect: true, fullLength: true });
 	observeRobuxElement('.text-robux', { useOverride: true, noDisconnect: true, fullLength: true });
-}
 
-// Initialize
-init();
+	// Listen for storage changes and apply them live
+	if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+		chrome.storage.onChanged.addListener((changes, areaName) => {
+			if (areaName !== 'sync') return;
 
-// Refresh all known Robux display elements using current settings.
-function refreshAll(): void {
-	SELECTOR_MAP.forEach(entry => {
-		const nodes = document.querySelectorAll(entry.sel);
-		nodes.forEach(node => {
+			if (changes.showUSD) showUSD = changes.showUSD.newValue !== false;
+			if (changes.showRobux) showRobux = changes.showRobux.newValue !== false;
+			if (changes.robuxOverride) {
+				// robuxOverride may be saved as string from the popup
+				const raw = changes.robuxOverride.newValue as any;
+				robuxOverride = parseInt(raw as string) || 0;
+			}
+			if (changes.enableOverride) enableOverride = !!changes.enableOverride.newValue;
+
+			// eslint-disable-next-line no-console
+			console.log('Storage changed, refreshing displays', { showUSD, showRobux, robuxOverride, enableOverride });
+
+			// Immediately refresh all observed elements
 			try {
-				updateRobuxDisplay(node, entry.opts || {});
+				refreshPageContent();
 			} catch (err) {
 				// eslint-disable-next-line no-console
-				console.error('Failed to refresh element', entry.sel, err);
+				console.error('Error during refreshAll', err);
 			}
 		});
-	});
+	}
 }
-
-// Listen for storage changes and apply them live
-if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
-	chrome.storage.onChanged.addListener((changes, areaName) => {
-		if (areaName !== 'sync') return;
-
-		if (changes.showUSD) showUSD = changes.showUSD.newValue !== false;
-		if (changes.showRobux) showRobux = changes.showRobux.newValue !== false;
-		if (changes.robuxOverride) {
-			// robuxOverride may be saved as string from the popup
-			const raw = changes.robuxOverride.newValue as any;
-			robuxOverride = parseInt(raw as string) || 0;
-		}
-		if (changes.enableOverride) enableOverride = !!changes.enableOverride.newValue;
-
-		// eslint-disable-next-line no-console
-		console.log('Storage changed, refreshing displays', { showUSD, showRobux, robuxOverride, enableOverride });
-
-		// Immediately refresh all observed elements
-		try {
-			refreshAll();
-		} catch (err) {
-			// eslint-disable-next-line no-console
-			console.error('Error during refreshAll', err);
-		}
-	});
-}
-
-refreshAll();

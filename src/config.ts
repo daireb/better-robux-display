@@ -1,7 +1,7 @@
-const HIDDEN_TEXT = "???";
-const DEVEX_RATE = 0.0038;
+export const HIDDEN_TEXT = "???";
+export const DEVEX_RATE = 0.0038;
 
-const SELECTOR_MAP: Array<{ sel: string; opts?: { useOverride?: boolean; fullLength?: boolean } }> = [
+export const SELECTOR_MAP: Array<{ sel: string; opts?: { useOverride?: boolean; fullLength?: boolean } }> = [
 	{ sel: '.rbx-text-navbar-right.text-header', opts: { useOverride: true } },
 	{ sel: '#nav-robux-balance', opts: { useOverride: true, fullLength: true } },
 	{ sel: '.text-robux.ng-binding' },
