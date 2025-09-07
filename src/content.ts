@@ -8,6 +8,8 @@ let showRobux = true;
 let robuxOverride = 0;
 let enableOverride = false;
 
+const ROBUX_AMOUNT_MAP = new WeakMap<Element, number>();
+
 function formatNumberLong(num: number): string {
 	const userLocale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
 
@@ -39,7 +41,11 @@ function formatRobuxData(robuxAmount: number, usdAmount: number, fullLength = fa
 	return Config.HIDDEN_TEXT;
 }
 
-function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }): void {
+function getBaseRobuxAmount(robuxElement: Element): number {
+	if (ROBUX_AMOUNT_MAP.has(robuxElement)) {
+		return ROBUX_AMOUNT_MAP.get(robuxElement) as number;
+	}
+
 	const rawText = (robuxElement.textContent || '').trim();
 	let robuxText = rawText;
 	let multiplier = 1;
@@ -57,13 +63,22 @@ function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: bool
 
 	robuxText = robuxText.replace(/[^0-9.]/g, '');
 
-	const robuxAmount = options.useOverride && enableOverride
-		? robuxOverride
-		: parseFloat(robuxText) * multiplier;
+	const robuxAmount = parseFloat(robuxText) * multiplier;
 
 	if (isNaN(robuxAmount)) {
 		throw new Error('Invalid Robux amount: ' + rawText);
 	}
+
+	ROBUX_AMOUNT_MAP.set(robuxElement, robuxAmount);
+	return robuxAmount;
+}
+
+function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }): void {
+	const baseAmount = getBaseRobuxAmount(robuxElement);
+
+	const robuxAmount = options.useOverride && enableOverride
+		? robuxOverride
+		: baseAmount;
 
 	const usdAmount = robuxAmount * Config.DEVEX_RATE;
 	robuxElement.textContent = formatRobuxData(robuxAmount, usdAmount, !!options.fullLength);
