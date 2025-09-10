@@ -164,6 +164,51 @@ function handleRobuxMutation(robuxElement: Element, options: { useOverride?: boo
 }
 
 /**
+ * Wait for document.body to be available before proceeding.
+ * This handles cases where the script runs before DOMContentLoaded.
+ * 
+ * @returns Promise that resolves when document.body is available.
+ */
+async function waitForDocumentBody(): Promise<void> {
+	if (document.body) return;
+
+	await new Promise<void>((resolve) => {
+		let observer: MutationObserver | null = null;
+
+		const cleanup = () => {
+			if (observer) {
+				observer.disconnect();
+				observer = null;
+			}
+			document.removeEventListener('DOMContentLoaded', onReady);
+			window.removeEventListener('load', onReady);
+			resolve();
+		};
+
+		const onReady = () => {
+			if (document.body) cleanup();
+		};
+
+		document.addEventListener('DOMContentLoaded', onReady);
+		window.addEventListener('load', onReady);
+
+		observer = new MutationObserver(() => {
+			if (document.body) cleanup();
+		});
+
+		observer.observe(document.documentElement || document, {
+			childList: true,
+			subtree: true
+		});
+
+		// Fallback safety in case none of the above fire for some reason.
+		setTimeout(() => {
+			if (document.body) cleanup();
+		}, 10000);
+	});
+}
+
+/**
  * Observe elements that match `selector`. When elements appear, attach a
  * mutation observer to each so we can update them live.
  */
@@ -232,6 +277,8 @@ async function initContent(): Promise<void> {
 	enableOverride = data.enableOverride || false;
 
 	// Register observers after settings are loaded so they use the correct initial state
+	await waitForDocumentBody();
+
 	observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true }); // Top-right robux display in navbar
 	observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true }); // Detailed robux in navbar dropdown
 
