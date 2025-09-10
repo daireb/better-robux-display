@@ -2,6 +2,9 @@
 
 All notable changes to this project are listed here.
 
+# 2.0.1
+- Updated icons with slight shadow for better visibility on light backgrounds
+
 ## 2.0
 - Updated project to TypeScript
 - Redesigned the popup UI
