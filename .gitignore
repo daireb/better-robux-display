@@ -3,6 +3,7 @@
 
 # Build
 /dist
+dist.zip
 
 # Packages
 /node_modules

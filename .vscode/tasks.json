@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
+      "label": "Build",
       "type": "shell",
       "command": "npm run build",
       "args": [],
@@ -15,6 +15,33 @@
         "reveal": "always",
         "focus": false,
         "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pack",
+      "type": "shell",
+      "command": "zip -r dist.zip *",
+      "args": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build and Pack",
+      "dependsOn": ["Build", "Pack"],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": false
       },
       "problemMatcher": []
     }
