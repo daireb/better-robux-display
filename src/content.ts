@@ -206,7 +206,7 @@ function observeRobuxElement(selector: string, options: { useOverride?: boolean;
 }
 
 // Refresh all known Robux display elements using current settings.
-export function refreshPageContent(): void {
+function refreshPageContent(): void {
 	Config.SELECTOR_MAP.forEach(entry => {
 		const nodes = document.querySelectorAll(entry.sel);
 		nodes.forEach(node => {
@@ -223,7 +223,7 @@ export function refreshPageContent(): void {
 /**
  * Initialize content script: load settings and register observers.
  */
-export async function initContent(): Promise<void> {
+async function initContent(): Promise<void> {
 	const data = await getSettings();
 
 	showUSD = data.showUSD !== false;
@@ -265,3 +265,5 @@ export async function initContent(): Promise<void> {
 		});
 	}
 }
+
+initContent();
