@@ -231,10 +231,6 @@ export async function initContent(): Promise<void> {
 	robuxOverride = parseInt((data.robuxOverride as any) as string) || 0;
 	enableOverride = data.enableOverride || false;
 
-	// Logging for debugging
-	// eslint-disable-next-line no-console
-	console.log('Settings loaded:', { showUSD, showRobux, robuxOverride, enableOverride });
-
 	// Register observers after settings are loaded so they use the correct initial state
 	observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true }); // Top-right robux display in navbar
 	observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true }); // Detailed robux in navbar dropdown
@@ -258,9 +254,6 @@ export async function initContent(): Promise<void> {
 				robuxOverride = parseInt(raw as string) || 0;
 			}
 			if (changes.enableOverride) enableOverride = !!changes.enableOverride.newValue;
-
-			// eslint-disable-next-line no-console
-			console.log('Storage changed, refreshing displays', { showUSD, showRobux, robuxOverride, enableOverride });
 
 			// Immediately refresh all observed elements
 			try {
