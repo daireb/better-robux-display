@@ -71,22 +71,16 @@ function containsCurrencySymbol(text: string): boolean {
 }
 
 /**
- * Parse a Robux display element's base numeric value.
- * Supports compact suffixes like "K", "M", "B".
- * Caches parsed results in ROBUX_AMOUNT_MAP.
+ * Parse a raw text representation of Robux into a numeric value.
+ * @param text The raw text content to parse, e.g. "1.2K", "Free", "1234.56"
+ * @returns The parsed Robux amount, or 0 for "Free" / empty strings.
  */
-function getBaseRobuxAmount(robuxElement: Element): number {
-	if (ROBUX_AMOUNT_MAP.has(robuxElement)) {
-		return ROBUX_AMOUNT_MAP.get(robuxElement) as number;
-	}
-
-	const rawText = getElementText(robuxElement);
-	if (rawText === "Free" || rawText === "") {
-		ROBUX_AMOUNT_MAP.set(robuxElement, 0);
+function parseRobuxText(text: string): number {
+	if (text == "Free" || text === "") {
 		return 0;
 	}
 
-	let numericText = rawText;
+	let numericText = text;
 	let multiplier = 1;
 
 	// Look for common shorthand suffixes (case-insensitive).
@@ -106,11 +100,27 @@ function getBaseRobuxAmount(robuxElement: Element): number {
 
 	const parsed = parseFloat(numericText) * multiplier;
 	if (isNaN(parsed)) {
-		throw new Error('Invalid Robux amount: ' + rawText);
+		throw new Error('Invalid Robux amount: ' + text);
 	}
 
-	ROBUX_AMOUNT_MAP.set(robuxElement, parsed);
 	return parsed;
+}
+
+/**
+ * Parse a Robux display element's base numeric value.
+ * Supports compact suffixes like "K", "M", "B".
+ * Caches parsed results in ROBUX_AMOUNT_MAP.
+ */
+function getBaseRobuxAmount(robuxElement: Element): number {
+	if (ROBUX_AMOUNT_MAP.has(robuxElement)) {
+		return ROBUX_AMOUNT_MAP.get(robuxElement) as number;
+	}
+
+	const rawText = getElementText(robuxElement);
+	const robuxAmount = parseRobuxText(rawText);
+
+	ROBUX_AMOUNT_MAP.set(robuxElement, robuxAmount);
+	return robuxAmount;
 }
 
 /**
