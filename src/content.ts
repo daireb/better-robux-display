@@ -1,15 +1,21 @@
 import { getSettings } from './common';
 import * as Config from './config'
 
-let showUSD = false;
-let showRobux = true;
+// ----- Runtime flags (updated from storage settings) -----
+let showUSD = false;   // whether to show USD equivalents
+let showRobux = true;  // whether to show Robux values
 
+// Optional override values (from extension popup)
 let robuxOverride = 0;
 let enableOverride = false;
 
+// Caches to avoid reparsing DOM text repeatedly.
+// Using WeakMap so entries are garbage-collected with elements.
 const ROBUX_AMOUNT_MAP = new WeakMap<Element, number>();
 
+// ----- Formatting helpers -----
 function formatNumberLong(num: number): string {
+	// Use the user's preferred locale for numeric formatting.
 	const userLocale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
 
 	const options = Number.isInteger(num)
@@ -19,6 +25,11 @@ function formatNumberLong(num: number): string {
 	return new Intl.NumberFormat(userLocale, options).format(num);
 }
 
+/**
+ * Format a numeric value for compact display.
+ * - When fullLength is true, show a locale-aware long format (e.g. "1,234.00").
+ * - Otherwise, use compact suffixes (K, M, B, T) with a fixed precision.
+ */
 function formatNumber(num: number, fullLength = false): string {
 	if (fullLength) return formatNumberLong(num);
 
@@ -33,6 +44,10 @@ function formatNumber(num: number, fullLength = false): string {
 	return sign + parseFloat(absNum.toFixed(2)).toString();
 }
 
+/**
+ * Build the final text to place into the DOM for a given Robux value.
+ * Respects the global flags `showUSD` and `showRobux`.
+ */
 function formatRobuxData(robuxAmount: number, usdAmount: number, fullLength = false): string {
 	if (showUSD && !showRobux) return `$${formatNumber(usdAmount, fullLength)}`;
 	if (showRobux && !showUSD) return `${formatNumber(robuxAmount, fullLength)}`;
@@ -40,38 +55,58 @@ function formatRobuxData(robuxAmount: number, usdAmount: number, fullLength = fa
 	return Config.HIDDEN_TEXT;
 }
 
+// ----- DOM / parsing helpers -----
+function getElementText(el: Element): string {
+	// Normalize textContent access and trim whitespace.
+	return (el.textContent || '').trim();
+}
+
+function containsCurrencySymbol(text: string): boolean {
+	// If the element already contains a $ or a question mark placeholder, we skip updating it.
+	return text.includes('$') || text.includes('?');
+}
+
+/**
+ * Parse a Robux display element's base numeric value.
+ * Supports compact suffixes like "K", "M", "B".
+ * Caches parsed results in ROBUX_AMOUNT_MAP.
+ */
 function getBaseRobuxAmount(robuxElement: Element): number {
 	if (ROBUX_AMOUNT_MAP.has(robuxElement)) {
 		return ROBUX_AMOUNT_MAP.get(robuxElement) as number;
 	}
 
-	const rawText = (robuxElement.textContent || '').trim();
-	let robuxText = rawText;
+	const rawText = getElementText(robuxElement);
+	let numericText = rawText;
 	let multiplier = 1;
 
-	if (robuxText.includes('B')) {
-		multiplier = 1e9;
-		robuxText = robuxText.replace('B', '');
-	} else if (robuxText.includes('M')) {
-		multiplier = 1e6;
-		robuxText = robuxText.replace('M', '');
-	} else if (robuxText.includes('K')) {
-		multiplier = 1e3;
-		robuxText = robuxText.replace('K', '');
+	// Look for common shorthand suffixes (case-insensitive).
+	const suffixMatch = numericText.match(/[KMB]/i);
+	if (suffixMatch) {
+		const suffix = suffixMatch[0].toUpperCase();
+		if (suffix === 'B') multiplier = 1e9;
+		else if (suffix === 'M') multiplier = 1e6;
+		else if (suffix === 'K') multiplier = 1e3;
+
+		// Remove the suffix character so we can parse the numeric part.
+		numericText = numericText.replace(/[^0-9.]/g, '');
+	} else {
+		// Strip everything except digits and dot for parsing.
+		numericText = numericText.replace(/[^0-9.]/g, '');
 	}
 
-	robuxText = robuxText.replace(/[^0-9.]/g, '');
-
-	const robuxAmount = parseFloat(robuxText) * multiplier;
-
-	if (isNaN(robuxAmount)) {
+	const parsed = parseFloat(numericText) * multiplier;
+	if (isNaN(parsed)) {
 		throw new Error('Invalid Robux amount: ' + rawText);
 	}
 
-	ROBUX_AMOUNT_MAP.set(robuxElement, robuxAmount);
-	return robuxAmount;
+	ROBUX_AMOUNT_MAP.set(robuxElement, parsed);
+	return parsed;
 }
 
+/**
+ * Update a single element's displayed text according to current settings and options.
+ */
 function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }): void {
 	const baseAmount = getBaseRobuxAmount(robuxElement);
 
@@ -83,8 +118,13 @@ function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: bool
 	robuxElement.textContent = formatRobuxData(robuxAmount, usdAmount, !!options.fullLength);
 }
 
+/**
+ * Handle a mutation for a specific Robux element. We disconnect the observer
+ * while updating to avoid cycles, then reconnect it.
+ */
 function handleRobuxMutation(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }, observer?: MutationObserver) {
-	if ((robuxElement.textContent || '').includes('$') || (robuxElement.textContent || '').includes('?')) return;
+	const text = getElementText(robuxElement);
+	if (containsCurrencySymbol(text)) return;
 
 	if (observer) observer.disconnect();
 
@@ -102,6 +142,10 @@ function handleRobuxMutation(robuxElement: Element, options: { useOverride?: boo
 	}
 }
 
+/**
+ * Observe elements that match `selector`. When elements appear, attach a
+ * mutation observer to each so we can update them live.
+ */
 function observeRobuxElement(selector: string, options: { useOverride?: boolean; followOverride?: boolean; fullLength?: boolean; noDisconnect?: boolean } = {}) {
 	options.followOverride = options.followOverride !== undefined ? options.followOverride : false;
 	options.fullLength = options.fullLength !== undefined ? options.fullLength : false;
@@ -121,6 +165,7 @@ function observeRobuxElement(selector: string, options: { useOverride?: boolean;
 				subtree: true
 			});
 
+			// Run an initial update for the element.
 			handleRobuxMutation(robuxElement, options, robuxObserver);
 		});
 
@@ -148,6 +193,9 @@ export function refreshPageContent(): void {
 	});
 }
 
+/**
+ * Initialize content script: load settings and register observers.
+ */
 export async function initContent(): Promise<void> {
 	const data = await getSettings();
 
