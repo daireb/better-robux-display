@@ -12,6 +12,9 @@ let enableOverride = false;
 // Caches to avoid reparsing DOM text repeatedly.
 // Using WeakMap so entries are garbage-collected with elements.
 const ROBUX_AMOUNT_MAP = new WeakMap<Element, number>();
+// Track per-element observers so we don't attach multiple observers to the
+// same element (which was causing observer proliferation and CPU overload).
+const OBSERVER_MAP = new WeakMap<Element, MutationObserver>();
 
 // ----- Formatting helpers -----
 function formatNumberLong(num: number): string {
@@ -115,25 +118,37 @@ function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: bool
 		: baseAmount;
 
 	const usdAmount = robuxAmount * Config.DEVEX_RATE;
-	robuxElement.textContent = formatRobuxData(robuxAmount, usdAmount, !!options.fullLength);
+	const newText = formatRobuxData(robuxAmount, usdAmount, !!options.fullLength);
+
+	// Only update the DOM when the displayed text would actually change.
+	// This prevents creating extra mutations that re-trigger observers.
+	if (robuxElement.textContent !== newText) {
+		robuxElement.textContent = newText;
+	}
 }
 
 /**
  * Handle a mutation for a specific Robux element. We disconnect the observer
- * while updating to avoid cycles, then reconnect it.
+ * while updating to avoid cycles, then reconnect it.Hi
  */
 function handleRobuxMutation(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }, observer?: MutationObserver) {
-	const text = getElementText(robuxElement);
-	if (containsCurrencySymbol(text)) return;
-
+	// Disconnect first to avoid reacting to our own DOM writes.
 	if (observer) observer.disconnect();
 
 	try {
+		// Re-read the current text after disconnecting.
+		const text = getElementText(robuxElement);
+
+		// If the element already contains a currency symbol or placeholder,
+		// there's nothing to do.
+		if (containsCurrencySymbol(text)) return;
+
 		updateRobuxDisplay(robuxElement, options);
 	} catch (error) {
 		// eslint-disable-next-line no-console
 		console.error('Error updating Robux display:', error);
 	} finally {
+		// Always reattach the observer so we continue observing future changes.
 		if (observer) observer.observe(robuxElement, {
 			childList: true,
 			characterData: true,
@@ -155,17 +170,23 @@ function observeRobuxElement(selector: string, options: { useOverride?: boolean;
 		const robuxElements = document.querySelectorAll(selector);
 
 		robuxElements.forEach(robuxElement => {
-			const robuxObserver = new MutationObserver(() => {
-				handleRobuxMutation(robuxElement, options, robuxObserver);
-			});
+			// Avoid creating multiple observers for the same element.
+			let robuxObserver = OBSERVER_MAP.get(robuxElement);
+			if (!robuxObserver) {
+				robuxObserver = new MutationObserver(() => {
+					handleRobuxMutation(robuxElement, options, robuxObserver);
+				});
 
-			robuxObserver.observe(robuxElement, {
-				childList: true,
-				characterData: true,
-				subtree: true
-			});
+				robuxObserver.observe(robuxElement, {
+					childList: true,
+					characterData: true,
+					subtree: true
+				});
 
-			// Run an initial update for the element.
+				OBSERVER_MAP.set(robuxElement, robuxObserver);
+			}
+
+			// Run an initial update for the element using the existing/new observer.
 			handleRobuxMutation(robuxElement, options, robuxObserver);
 		});
 
