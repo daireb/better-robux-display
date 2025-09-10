@@ -81,7 +81,7 @@ function getBaseRobuxAmount(robuxElement: Element): number {
 	}
 
 	const rawText = getElementText(robuxElement);
-	if (rawText === "Free") {
+	if (rawText === "Free" || rawText === "") {
 		ROBUX_AMOUNT_MAP.set(robuxElement, 0);
 		return 0;
 	}
