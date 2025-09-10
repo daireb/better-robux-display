@@ -52,6 +52,7 @@ function formatNumber(num: number, fullLength = false): string {
  * Respects the global flags `showUSD` and `showRobux`.
  */
 function formatRobuxData(robuxAmount: number, usdAmount: number, fullLength = false): string {
+	if ((showUSD || showRobux) && robuxAmount === 0) return "Free";
 	if (showUSD && !showRobux) return `$${formatNumber(usdAmount, fullLength)}`;
 	if (showRobux && !showUSD) return `${formatNumber(robuxAmount, fullLength)}`;
 	if (showRobux && showUSD) return `${formatNumber(robuxAmount, fullLength)} ($${formatNumber(usdAmount)})`;
@@ -80,6 +81,11 @@ function getBaseRobuxAmount(robuxElement: Element): number {
 	}
 
 	const rawText = getElementText(robuxElement);
+	if (rawText === "Free") {
+		ROBUX_AMOUNT_MAP.set(robuxElement, 0);
+		return 0;
+	}
+
 	let numericText = rawText;
 	let multiplier = 1;
 
