@@ -1,5 +1,6 @@
 import { getSettings } from './common';
 import * as Config from './config'
+import type { SelectorOptions } from './config'
 
 // ----- Runtime flags (updated from storage settings) -----
 let showUSD = false;   // whether to show USD equivalents
@@ -9,12 +10,22 @@ let showRobux = true;  // whether to show Robux values
 let robuxOverride = 0;
 let enableOverride = false;
 
-// Caches to avoid reparsing DOM text repeatedly.
-// Using WeakMap so entries are garbage-collected with elements.
-const ROBUX_AMOUNT_MAP = new WeakMap<Element, number>();
+// Data attribute name for storing the original Robux value
+const DATA_ATTR = 'data-brd-original';
+
 // Track per-element observers so we don't attach multiple observers to the
 // same element (which was causing observer proliferation and CPU overload).
 const OBSERVER_MAP = new WeakMap<Element, MutationObserver>();
+
+// ----- Data attribute helpers -----
+function getOriginalRobux(el: Element): number | null {
+	const stored = el.getAttribute(DATA_ATTR);
+	return stored !== null ? parseFloat(stored) : null;
+}
+
+function setOriginalRobux(el: Element, value: number): void {
+	el.setAttribute(DATA_ATTR, value.toString());
+}
 
 // ----- Formatting helpers -----
 function formatNumberLong(num: number): string {
@@ -47,12 +58,22 @@ function formatNumber(num: number, fullLength = false): string {
 	return sign + parseFloat(absNum.toFixed(2)).toString();
 }
 
+/** Options for formatting Robux data */
+interface FormatOptions {
+	fullLength?: boolean;
+	isPrice?: boolean;  // If true, show "Free" for 0; if false, show "0" (for balances)
+}
+
 /**
  * Build the final text to place into the DOM for a given Robux value.
  * Respects the global flags `showUSD` and `showRobux`.
  */
-function formatRobuxData(robuxAmount: number, usdAmount: number, fullLength = false): string {
-	if ((showUSD || showRobux) && robuxAmount === 0) return "Free";
+function formatRobuxData(robuxAmount: number, usdAmount: number, options: FormatOptions = {}): string {
+	const { fullLength = false, isPrice = true } = options;
+	
+	// Only show "Free" for prices (items), not for balances (navbar)
+	if ((showUSD || showRobux) && robuxAmount === 0 && isPrice) return "Free";
+	
 	if (showUSD && !showRobux) return `$${formatNumber(usdAmount, fullLength)}`;
 	if (showRobux && !showUSD) return `${formatNumber(robuxAmount, fullLength)}`;
 	if (showRobux && showUSD) return `${formatNumber(robuxAmount, fullLength)} ($${formatNumber(usdAmount)})`;
@@ -63,11 +84,6 @@ function formatRobuxData(robuxAmount: number, usdAmount: number, fullLength = fa
 function getElementText(el: Element): string {
 	// Normalize textContent access and trim whitespace.
 	return (el.textContent || '').trim();
-}
-
-function containsCurrencySymbol(text: string): boolean {
-	// If the element already contains a $ or a question mark placeholder, we skip updating it.
-	return text.includes('$') || text.includes('?');
 }
 
 /**
@@ -107,59 +123,60 @@ function parseRobuxText(text: string): number {
 }
 
 /**
- * Parse a Robux display element's base numeric value.
- * Supports compact suffixes like "K", "M", "B".
- * Caches parsed results in ROBUX_AMOUNT_MAP.
+ * Compute the expected formatted output for a given original Robux value.
+ * Used to detect if we caused a mutation vs Roblox updating the value.
  */
-function getBaseRobuxAmount(robuxElement: Element): number {
-	if (ROBUX_AMOUNT_MAP.has(robuxElement)) {
-		return ROBUX_AMOUNT_MAP.get(robuxElement) as number;
-	}
-
-	const rawText = getElementText(robuxElement);
-	const robuxAmount = parseRobuxText(rawText);
-
-	ROBUX_AMOUNT_MAP.set(robuxElement, robuxAmount);
-	return robuxAmount;
+function computeExpectedOutput(originalRobux: number, options: SelectorOptions): string {
+	const displayAmount = (options.useOverride && enableOverride) ? robuxOverride : originalRobux;
+	const usdAmount = displayAmount * Config.DEVEX_RATE;
+	return formatRobuxData(displayAmount, usdAmount, {
+		fullLength: options.fullLength,
+		isPrice: options.isPrice
+	});
 }
 
 /**
- * Update a single element's displayed text according to current settings and options.
+ * Handle a mutation for a specific Robux element.
+ * Uses data attributes to detect whether Roblox updated the value or we did.
  */
-function updateRobuxDisplay(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }): void {
-	const baseAmount = getBaseRobuxAmount(robuxElement);
-
-	const robuxAmount = options.useOverride && enableOverride
-		? robuxOverride
-		: baseAmount;
-
-	const usdAmount = robuxAmount * Config.DEVEX_RATE;
-	const newText = formatRobuxData(robuxAmount, usdAmount, !!options.fullLength);
-
-	// Only update the DOM when the displayed text would actually change.
-	// This prevents creating extra mutations that re-trigger observers.
-	if (robuxElement.textContent !== newText) {
-		robuxElement.textContent = newText;
-	}
-}
-
-/**
- * Handle a mutation for a specific Robux element. We disconnect the observer
- * while updating to avoid cycles, then reconnect it.Hi
- */
-function handleRobuxMutation(robuxElement: Element, options: { useOverride?: boolean; fullLength?: boolean }, observer?: MutationObserver) {
+function handleRobuxMutation(robuxElement: Element, options: SelectorOptions, observer?: MutationObserver) {
 	// Disconnect first to avoid reacting to our own DOM writes.
 	if (observer) observer.disconnect();
 
 	try {
-		// Re-read the current text after disconnecting.
-		const text = getElementText(robuxElement);
-
-		// If the element already contains a currency symbol or placeholder,
-		// there's nothing to do.
-		if (containsCurrencySymbol(text)) return;
-
-		updateRobuxDisplay(robuxElement, options);
+		const currentText = getElementText(robuxElement);
+		
+		// Skip empty elements - Roblox hasn't populated them yet
+		if (currentText === '') return;
+		
+		const storedOriginal = getOriginalRobux(robuxElement);
+		
+		if (storedOriginal !== null) {
+			// Element was processed before - check if Roblox changed it
+			const expectedOutput = computeExpectedOutput(storedOriginal, options);
+			if (currentText === expectedOutput) {
+				// We caused this mutation, ignore it
+				return;
+			}
+			// Text differs from what we'd write - Roblox updated it, re-parse below
+		}
+		
+		// Parse the current text as the new original value
+		const robuxAmount = parseRobuxText(currentText);
+		setOriginalRobux(robuxElement, robuxAmount);
+		
+		// Compute and apply the formatted display
+		const displayAmount = (options.useOverride && enableOverride) ? robuxOverride : robuxAmount;
+		const usdAmount = displayAmount * Config.DEVEX_RATE;
+		const formatted = formatRobuxData(displayAmount, usdAmount, {
+			fullLength: options.fullLength,
+			isPrice: options.isPrice
+		});
+		
+		// Only update DOM if the text would actually change
+		if (robuxElement.textContent !== formatted) {
+			robuxElement.textContent = formatted;
+		}
 	} catch (error) {
 		// eslint-disable-next-line no-console
 		console.error('Error updating Robux display:', error);
@@ -222,11 +239,7 @@ async function waitForDocumentBody(): Promise<void> {
  * Observe elements that match `selector`. When elements appear, attach a
  * mutation observer to each so we can update them live.
  */
-function observeRobuxElement(selector: string, options: { useOverride?: boolean; followOverride?: boolean; fullLength?: boolean; noDisconnect?: boolean } = {}) {
-	options.followOverride = options.followOverride !== undefined ? options.followOverride : false;
-	options.fullLength = options.fullLength !== undefined ? options.fullLength : false;
-	options.noDisconnect = options.noDisconnect !== undefined ? options.noDisconnect : false;
-
+function observeRobuxElement(selector: string, options: SelectorOptions = {}) {
 	const initialObserver = new MutationObserver((mutations, obs) => {
 		const robuxElements = document.querySelectorAll(selector);
 
@@ -261,12 +274,32 @@ function observeRobuxElement(selector: string, options: { useOverride?: boolean;
 }
 
 // Refresh all known Robux display elements using current settings.
+// This is called when settings change (e.g., user toggles USD display).
 function refreshPageContent(): void {
 	Config.SELECTOR_MAP.forEach(entry => {
 		const nodes = document.querySelectorAll(entry.sel);
+		const options = entry.opts || {};
+		
 		nodes.forEach(node => {
 			try {
-				updateRobuxDisplay(node, entry.opts || {});
+				// Use the stored original value if available
+				const storedOriginal = getOriginalRobux(node);
+				if (storedOriginal === null) {
+					// Element hasn't been processed yet, skip
+					return;
+				}
+				
+				// Re-compute the formatted display with current settings
+				const displayAmount = (options.useOverride && enableOverride) ? robuxOverride : storedOriginal;
+				const usdAmount = displayAmount * Config.DEVEX_RATE;
+				const formatted = formatRobuxData(displayAmount, usdAmount, {
+					fullLength: options.fullLength,
+					isPrice: options.isPrice
+				});
+				
+				if (node.textContent !== formatted) {
+					node.textContent = formatted;
+				}
 			} catch (err) {
 				// eslint-disable-next-line no-console
 				console.error('Failed to refresh element', entry.sel, err);
@@ -289,14 +322,10 @@ async function initContent(): Promise<void> {
 	// Register observers after settings are loaded so they use the correct initial state
 	await waitForDocumentBody();
 
-	observeRobuxElement('.rbx-text-navbar-right.text-header', { useOverride: true }); // Top-right robux display in navbar
-	observeRobuxElement('#nav-robux-balance', { useOverride: true, fullLength: true, noDisconnect: true }); // Detailed robux in navbar dropdown
-
-	observeRobuxElement('.text-robux.ng-binding');
-	observeRobuxElement('span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', { fullLength: true, noDisconnect: true });
-	observeRobuxElement('span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', { fullLength: true });
-	observeRobuxElement('td.amount.icon-robux-container > span.icon-robux-16x16 + span', { noDisconnect: true, fullLength: true });
-	observeRobuxElement('.text-robux', { noDisconnect: true, fullLength: true });
+	// Register observers for all selectors defined in config
+	Config.SELECTOR_MAP.forEach(entry => {
+		observeRobuxElement(entry.sel, entry.opts || {});
+	});
 
 	// Listen for storage changes and apply them live
 	if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {

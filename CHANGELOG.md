@@ -2,7 +2,14 @@
 
 All notable changes to this project are listed here.
 
-# 2.0.1
+## 2.1.0
+- Fixed bug where balance would show "Free" instead of actual value on Web Store version
+- Refactored to use data attributes for reliable detection of page updates
+- Balance displays now correctly show "0" instead of "Free" when user has 0 Robux
+- "Free" now only displays for item prices, not personal balance
+- Improved handling of dynamically loaded content
+
+## 2.0.1
 - Updated icons with slight shadow for better visibility on light backgrounds
 
 ## 2.0
