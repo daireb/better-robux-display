@@ -1,7 +1,7 @@
 {
   "name": "better-robux-display",
-  "version": "1.2.0",
-  "description": "Better Robux Display - TypeScript conversion",
+  "version": "2.2.0",
+  "description": "Allows configuration of robux display on Roblox.com, including hiding values and showing devex amounts.",
   "private": true,
   "scripts": {
     "build": "esbuild src/*.ts --bundle --outdir=dist --platform=browser --sourcemap",

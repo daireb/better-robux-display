@@ -5,10 +5,11 @@ A Chromium extension that converts Robux amounts to USD on Roblox.com and displa
 ## Features
 
 - **Automatic Conversion**: Converts Robux values to USD using the devex conversion rate.
-- **Customizable Display**: Users can choose to show or hide the Robux and USD values independently.
-- **Easy to Use**: Simple toggle options are available in a popup accessible from the extension icon.
-- **Private:** No data is sent or received by the plugin, so it is entirely private.
-- **Robux Override:** Override how much robux it shows on your profile! Just a silly fun feature I thought I'd add while I was at it :)
+- **Customizable Display**: Choose to show or hide Robux and USD values independently.
+- **Hide My Balance**: Hide your own Robux balance (shows ???) while keeping item prices visible — great for streaming or screensharing.
+- **Balance Override**: Show a custom Robux value in place of your real balance.
+- **Easy to Use**: Simple options in a popup accessible from the extension icon.
+- **Private**: No data is sent or received by the plugin, so it is entirely private.
 
 ## Installation on the Chrome Web Store
 

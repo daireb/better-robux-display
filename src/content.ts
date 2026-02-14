@@ -1,4 +1,5 @@
 import { getSettings } from './common';
+import type { BalanceMode } from './common';
 import * as Config from './config'
 import type { SelectorOptions } from './config'
 
@@ -6,9 +7,9 @@ import type { SelectorOptions } from './config'
 let showUSD = false;   // whether to show USD equivalents
 let showRobux = true;  // whether to show Robux values
 
-// Optional override values (from extension popup)
+// Balance display mode: 'show' (real value), 'hide' (???), 'override' (custom value)
+let balanceMode: BalanceMode = 'show';
 let robuxOverride = 0;
-let enableOverride = false;
 
 // Data attribute name for storing the original Robux value
 const DATA_ATTR = 'data-brd-original';
@@ -70,6 +71,9 @@ interface FormatOptions {
  */
 function formatRobuxData(robuxAmount: number, usdAmount: number, options: FormatOptions = {}): string {
 	const { fullLength = false, isPrice = true } = options;
+
+	// Hide the user's own balance while keeping prices visible
+	if (balanceMode === 'hide' && !isPrice) return Config.HIDDEN_TEXT;
 	
 	// Only show "Free" for prices (items), not for balances (navbar)
 	if ((showUSD || showRobux) && robuxAmount === 0 && isPrice) return "Free";
@@ -127,7 +131,7 @@ function parseRobuxText(text: string): number {
  * Used to detect if we caused a mutation vs Roblox updating the value.
  */
 function computeExpectedOutput(originalRobux: number, options: SelectorOptions): string {
-	const displayAmount = (options.useOverride && enableOverride) ? robuxOverride : originalRobux;
+	const displayAmount = (options.useOverride && balanceMode === 'override') ? robuxOverride : originalRobux;
 	const usdAmount = displayAmount * Config.DEVEX_RATE;
 	return formatRobuxData(displayAmount, usdAmount, {
 		fullLength: options.fullLength,
@@ -166,7 +170,7 @@ function handleRobuxMutation(robuxElement: Element, options: SelectorOptions, ob
 		setOriginalRobux(robuxElement, robuxAmount);
 		
 		// Compute and apply the formatted display
-		const displayAmount = (options.useOverride && enableOverride) ? robuxOverride : robuxAmount;
+		const displayAmount = (options.useOverride && balanceMode === 'override') ? robuxOverride : robuxAmount;
 		const usdAmount = displayAmount * Config.DEVEX_RATE;
 		const formatted = formatRobuxData(displayAmount, usdAmount, {
 			fullLength: options.fullLength,
@@ -290,7 +294,7 @@ function refreshPageContent(): void {
 				}
 				
 				// Re-compute the formatted display with current settings
-				const displayAmount = (options.useOverride && enableOverride) ? robuxOverride : storedOriginal;
+				const displayAmount = (options.useOverride && balanceMode === 'override') ? robuxOverride : storedOriginal;
 				const usdAmount = displayAmount * Config.DEVEX_RATE;
 				const formatted = formatRobuxData(displayAmount, usdAmount, {
 					fullLength: options.fullLength,
@@ -317,7 +321,7 @@ async function initContent(): Promise<void> {
 	showUSD = data.showUSD !== false;
 	showRobux = data.showRobux !== false;
 	robuxOverride = parseInt((data.robuxOverride as any) as string) || 0;
-	enableOverride = data.enableOverride || false;
+	balanceMode = data.balanceMode || 'show';
 
 	// Register observers after settings are loaded so they use the correct initial state
 	await waitForDocumentBody();
@@ -339,7 +343,7 @@ async function initContent(): Promise<void> {
 				const raw = changes.robuxOverride.newValue as any;
 				robuxOverride = parseInt(raw as string) || 0;
 			}
-			if (changes.enableOverride) enableOverride = !!changes.enableOverride.newValue;
+			if (changes.balanceMode) balanceMode = changes.balanceMode.newValue || 'show';
 
 			// Immediately refresh all observed elements
 			try {

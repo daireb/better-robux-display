@@ -18,5 +18,5 @@ export const SELECTOR_MAP: Array<{ sel: string; opts?: SelectorOptions }> = [
 	{ sel: 'span.ng-binding[ng-bind^="$ctrl.revenueSummary"]', opts: { fullLength: true, isPrice: false, noDisconnect: true } },
 	{ sel: 'span.ng-binding[ng-bind^="($ctrl.revenueSummary.itemSaleRobux"]', opts: { fullLength: true, isPrice: false } },
 	{ sel: 'td.amount.icon-robux-container > span.icon-robux-16x16 + span', opts: { fullLength: true, isPrice: true, noDisconnect: true } },
-	{ sel: '.text-robux', opts: { useOverride: true, fullLength: true, isPrice: true, noDisconnect: true } }
+	{ sel: '.text-robux', opts: { fullLength: true, isPrice: true, noDisconnect: true } }
 ];

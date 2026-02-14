@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Better Robux Display",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Allows configuration of robux display on Roblox.com, including hiding values and showing devex amounts.",
   "permissions": ["storage"],
   "content_scripts": [
